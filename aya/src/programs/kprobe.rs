@@ -1,5 +1,4 @@
 //! Kernel space probes.
-use libc::pid_t;
 use std::io;
 use thiserror::Error;
 
@@ -20,6 +19,10 @@ use crate::{
 /// - `kprobe`: get attached to the *start* of the target functions
 /// - `kretprobe`: get attached to the *return address* of the target functions
 ///
+/// # Minimum kernel version
+///
+/// The minimum kernel version required to use this feature is 4.1.
+///
 /// # Examples
 ///
 /// ```no_run
@@ -28,7 +31,8 @@ use crate::{
 /// use std::convert::TryInto;
 ///
 /// let program: &mut KProbe = bpf.program_mut("intercept_wakeups")?.try_into()?;
-/// program.attach("try_to_wake_up", 0, None)?;
+/// program.load()?;
+/// program.attach("try_to_wake_up", 0)?;
 /// # Ok::<(), aya::BpfError>(())
 /// ```
 #[derive(Debug)]
@@ -61,19 +65,13 @@ impl KProbe {
     ///
     /// Attaches the probe to the given function name inside the kernel. If
     /// `offset` is non-zero, it is added to the address of the target
-    /// function. If `pid` is not `None`, the program executes only when the
-    /// target function is triggered by the given `pid`.
+    /// function.
     ///
     /// If the program is a `kprobe`, it is attached to the *start* address of the target function.
     /// Conversely if the program is a `kretprobe`, it is attached to the return address of the
     /// target function.
-    pub fn attach(
-        &mut self,
-        fn_name: &str,
-        offset: u64,
-        pid: Option<pid_t>,
-    ) -> Result<LinkRef, ProgramError> {
-        attach(&mut self.data, self.kind, fn_name, offset, pid)
+    pub fn attach(&mut self, fn_name: &str, offset: u64) -> Result<LinkRef, ProgramError> {
+        attach(&mut self.data, self.kind, fn_name, offset, None)
     }
 }
 
